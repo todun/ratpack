@@ -24,6 +24,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.pool.*;
 import ratpack.exec.ExecController;
 import ratpack.exec.Execution;
+import ratpack.exec.Operation;
 import ratpack.exec.Promise;
 import ratpack.exec.internal.ExecControllerInternal;
 import ratpack.func.Action;
@@ -214,6 +215,12 @@ public class DefaultHttpClient implements HttpClientInternal {
       responseInterceptor = responseInterceptor.append(interceptor);
       return this;
     }
+
+    @Override
+    public HttpClientSpec responseIntercept(Operation operation) {
+      responseInterceptor = responseInterceptor.append(response -> operation.then());
+      return this;
+    }
   }
 
   @Override
@@ -246,6 +253,7 @@ public class DefaultHttpClient implements HttpClientInternal {
     return promise.next(r ->
       ExecController.require()
         .fork()
+        .eventLoop(Execution.current().getEventLoop())
         .start(e ->
           action.execute(r)
         )
